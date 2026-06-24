@@ -64,12 +64,10 @@ services:
   spark_client:
     container_name: spark_client
     image: veribilimiokulu/pyspark:3.5.3_python-3.12_java17
-    ports:
-      - 8888:8888
-      - 4040:4040
     volumes:
-      - spark:/dataops
-    command: /bin/bash -c "apt update && apt install openssh-server sudo sshpass git -y && useradd -rm -d /home/ssh_train -s /bin/bash -g root -G sudo -u 1000 ssh_train && echo 'ssh_train:Ankara06' | chpasswd && service ssh start && tail -f /dev/null"
+      # SADECE BURAYI EKLE: Git-sync'in indirdiği dosyaları buraya da bağla
+      - airflow-dags:/dataops 
+    command: /bin/bash -c "apt update && apt install openssh-server sudo sshpass git -y && ... (diğer komutların)"
 
 volumes:
   postgres-db-volume:

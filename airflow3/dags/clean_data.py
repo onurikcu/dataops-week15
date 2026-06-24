@@ -4,34 +4,36 @@ from sqlalchemy import create_engine
 import os
 
 def clean_store_data(file_path):
-    # 1. Dosyanın varlığını kontrol et
+    # Spark_client konteynerinde dosya /dataops/ altında olmalı
     if not os.path.exists(file_path):
         print(f"Hata: {file_path} dosyası bulunamadı!")
         return
 
-    # CSV'yi oku
     df = pd.read_csv(file_path)
     
-    # 2. STORE_LOCATION temizliği
+    # STORE_LOCATION temizliği
     df['STORE_LOCATION'] = df['STORE_LOCATION'].apply(lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip())
     
-    # 3. Para birimi sütunları temizliği
+    # Para birimi temizliği
     currency_cols = ['MRP', 'CP', 'DISCOUNT', 'SP']
     for col in currency_cols:
-        df[col] = df[col].astype(str).str.replace('$', '', regex=False).astype(float)
+        # Hata payı bırakmak için regex ile temizle
+        df[col] = df[col].replace(r'[\$,]', '', regex=True).astype(float)
     
-    # 4. PostgreSQL'e Bağlan ve Yaz
-    # 'postgres' burada docker-compose'daki service adımızdır
-    db_url = 'postgresql+psycopg2://airflow:airflow@postgres/traindb'
+    # PostgreSQL'e Bağlan
+    # NOT: 'postgres' servisi airflow konteynerinden erişilebilir ama 
+    # spark_client içinden postgres'e erişmek için docker ağ ismini kullanmalısın.
+    # Eğer postgres container ismin 'airflow3-postgres-1' ise host kısmına onu yazmalısın.
+    db_url = 'postgresql+psycopg2://airflow:airflow@airflow3-postgres-1:5432/traindb'
     engine = create_engine(db_url)
     
     try:
         df.to_sql('clean_data_transactions', engine, if_exists='replace', index=False, schema='public')
-        print("Veriler başarıyla PostgreSQL (traindb) veritabanına yazıldı.")
+        print("Veriler başarıyla PostgreSQL'e yazıldı.")
     except Exception as e:
         print(f"Veritabanı yazma hatası: {e}")
 
 if __name__ == "__main__":
-    # Dosya yolu artık Airflow'un dags klasöründe olduğu için tam yolu veriyoruz
-    file_path = '/opt/airflow/dags/dirty_store_transactions.csv'
+    # Spark_client içinde dosya /dataops/ klasöründe olmalı
+    file_path = '/dataops/dirty_store_transactions.csv'
     clean_store_data(file_path)
