@@ -1,22 +1,16 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from datetime import datetime, timedelta
-
-default_args = {
-    'owner': 'airflow',
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
-}
+from datetime import datetime
 
 with DAG(
-    'data_pipeline_assignment',
-    default_args=default_args,
-    start_date=datetime(2026, 1, 1), # Bu tarihi 2026'nın başına çektik
-    schedule_interval=None,
+    dag_id='data_pipeline_assignment',
+    start_date=datetime(2026, 1, 1),
+    schedule=None,
     catchup=False
 ) as dag:
 
-    t1 = BashOperator(
-        task_id='test_task',
-        bash_command='echo "DAG calisti!"'
+    # Python scriptini çalıştıran görev
+    clean_task = BashOperator(
+        task_id='run_cleaning_script',
+        bash_command='python3 /opt/airflow/scripts/clean_data.py'
     )

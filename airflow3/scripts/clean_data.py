@@ -1,22 +1,23 @@
 import pandas as pd
-import sys
-from sqlalchemy import create_engine
+import re
 
-def clean_and_load(input_path, db_url):
-    # 1. Veriyi Oku
-    df = pd.read_csv(input_path)
+def clean_store_data(file_path):
+    # CSV'yi oku
+    df = pd.read_csv(file_path)
     
-    # 2. Temizlik (Missing values, duplicates)
-    df = df.drop_duplicates()
-    df = df.fillna(0) # Eksik değerleri 0 ile doldur
+    # 1. STORE_LOCATION sütunundaki özel karakterleri temizle
+    # Regex ile sadece harf ve boşluk bırak, gerisini at
+    df['STORE_LOCATION'] = df['STORE_LOCATION'].apply(lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip())
     
-    # 3. Yükleme (Postgres)
-    engine = create_engine(db_url)
-    df.to_sql('clean_data_transactions', engine, if_exists='replace', index=False)
-    print("İşlem başarıyla tamamlandı: 500 satır yüklendi.")
+    # 2. Ücret sütunlarından '$' işaretini kaldır ve sayıya çevir
+    currency_cols = ['MRP', 'CP', 'DISCOUNT', 'SP']
+    for col in currency_cols:
+        df[col] = df[col].astype(str).str.replace('$', '', regex=False).astype(float)
+    
+    # 3. Temizlenmiş veriyi kaydet
+    output_path = file_path.replace('.csv', '_cleaned.csv')
+    df.to_csv(output_path, index=False)
+    print(f"Veri temizlendi ve kaydedildi: {output_path}")
 
 if __name__ == "__main__":
-    # Parametreleri al
-    path = sys.argv[1]
-    db = "postgresql://airflow:airflow@postgres/airflow" # Host'u 'postgres' olarak bıraktık
-    clean_and_load(path, db)
+    clean_store_data('dirty_store_transactions.csv')
