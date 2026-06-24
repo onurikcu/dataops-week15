@@ -12,7 +12,7 @@ with DAG(
     'data_pipeline_dag',
     default_args=default_args,
     start_date=datetime(2026, 6, 24),
-    schedule_interval='@daily',
+    schedule='@daily', # 'schedule_interval' yerine 'schedule' kullan
     catchup=False,
     tags=['dataops', 'assignment']
 ) as dag:
