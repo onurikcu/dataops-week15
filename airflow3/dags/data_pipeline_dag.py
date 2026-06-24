@@ -24,7 +24,5 @@ with DAG(
         ssh_conn_id='ssh_default',
         command='python3 /dataops/clean_data.py', 
         get_pty=True,
-        # 'command_timeout' yerine bunu kaldırıyoruz, 
-        # Airflow SSH bağlantı timeout'unu zaten bağlantı ayarlarından (Connection) alır.
-        timeout=600 
+        # Bağlantı süresini bağlantı objesinin kendisine bırakıyoruz
     )
