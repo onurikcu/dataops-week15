@@ -21,8 +21,8 @@ with DAG(
     run_cleaning_job = SSHOperator(
         task_id='run_spark_cleaning',
         ssh_conn_id='ssh_default',
-        # Dosya yolu /dataops/ içinde olmalı (docker-compose'da bu yolu bağlamıştık)
-        command='python3 /dataops/clean_script.py',
+        # Dosya ismini terminalde gördüğün isimle eşle:
+        command='python3 /dataops/clean_data.py', 
         get_pty=True
     )
 
