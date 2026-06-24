@@ -12,6 +12,8 @@ x-airflow-common: &airflow-common
   depends_on:
     postgres:
       condition: service_healthy
+  networks:
+    - airflow-net
 
 services:
   postgres:
@@ -27,6 +29,8 @@ services:
       interval: 10s
       retries: 5
     restart: always
+    networks:
+      - airflow-net
 
   airflow-webserver:
     <<: *airflow-common
@@ -46,6 +50,8 @@ services:
       - /home/train/onur_linux/week15/airflow3/dags:/source
     command: /bin/sh -c "while true; do cp -r /source/* /opt/airflow/dags/; sleep 30; done"
     restart: always
+    networks:
+      - airflow-net
 
   rustfs:
     restart: always
@@ -60,15 +66,22 @@ services:
       - RUSTFS_VOLUMES=/data
     volumes:
       - rustfs_data:/data
+    networks:
+      - airflow-net
 
   spark_client:
     container_name: spark_client
     image: veribilimiokulu/pyspark:3.5.3_python-3.12_java17
     volumes:
       - airflow-dags:/dataops
-    # SSH kurulumu ve servisin kalıcı olması için güncellenmiş komut
     command: /bin/bash -c "apt update && apt install openssh-server -y && mkdir -p /var/run/sshd && echo 'root:Ankara06' | chpasswd && sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && /usr/sbin/sshd -D"
     restart: always
+    networks:
+      - airflow-net
+
+networks:
+  airflow-net:
+    driver: bridge
 
 volumes:
   postgres-db-volume:

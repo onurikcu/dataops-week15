@@ -2,38 +2,41 @@ import pandas as pd
 import re
 from sqlalchemy import create_engine
 import os
+import boto3
+import io
 
-def clean_store_data(file_path):
-    # Spark_client konteynerinde dosya /dataops/ altında olmalı
-    if not os.path.exists(file_path):
-        print(f"Hata: {file_path} dosyası bulunamadı!")
+def clean_store_data():
+    # 1. RustFS'ten veriyi oku
+    s3 = boto3.client('s3', 
+                      endpoint_url='http://rustfs:9000', 
+                      aws_access_key_id='dataops', 
+                      aws_secret_access_key='Ankara06')
+    
+    try:
+        obj = s3.get_object(Bucket='dataops-bronze', Key='raw/dirty_store_transactions.csv')
+        df = pd.read_csv(io.BytesIO(obj['Body'].read()))
+        print("Veri RustFS'ten başarıyla çekildi.")
+    except Exception as e:
+        print(f"RustFS okuma hatası: {e}")
         return
 
-    df = pd.read_csv(file_path)
-    
-    # STORE_LOCATION temizliği
+    # 2. Temizlik İşlemleri
     df['STORE_LOCATION'] = df['STORE_LOCATION'].apply(lambda x: re.sub(r'[^a-zA-Z\s]', '', str(x)).strip())
     
-    # Para birimi temizliği
     currency_cols = ['MRP', 'CP', 'DISCOUNT', 'SP']
     for col in currency_cols:
-        # Hata payı bırakmak için regex ile temizle
         df[col] = df[col].replace(r'[\$,]', '', regex=True).astype(float)
     
-    # PostgreSQL'e Bağlan
-    # NOT: 'postgres' servisi airflow konteynerinden erişilebilir ama 
-    # spark_client içinden postgres'e erişmek için docker ağ ismini kullanmalısın.
-    # Eğer postgres container ismin 'airflow3-postgres-1' ise host kısmına onu yazmalısın.
+    # 3. PostgreSQL'e Bağlan
+    # Host isminin 'airflow3-postgres-1' olduğundan eminsin
     db_url = 'postgresql+psycopg2://airflow:airflow@airflow3-postgres-1:5432/traindb'
     engine = create_engine(db_url)
     
     try:
         df.to_sql('clean_data_transactions', engine, if_exists='replace', index=False, schema='public')
-        print("Veriler başarıyla PostgreSQL'e yazıldı.")
+        print("Başarılı: Veriler PostgreSQL'e yazıldı.")
     except Exception as e:
         print(f"Veritabanı yazma hatası: {e}")
 
 if __name__ == "__main__":
-    # Spark_client içinde dosya /dataops/ klasöründe olmalı
-    file_path = '/dataops/dirty_store_transactions.csv'
-    clean_store_data(file_path)
+    clean_store_data()
