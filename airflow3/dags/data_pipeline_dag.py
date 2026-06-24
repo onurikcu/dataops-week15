@@ -1,16 +1,20 @@
 from airflow import DAG
-from airflow.operators.bash import BashOperator
+from airflow.providers.ssh.operators.ssh import SSHOperator
 from datetime import datetime
 
 with DAG(
-    dag_id='data_pipeline_assignment',
-    start_date=datetime(2026, 1, 1),
-    schedule=None,
+    'data_pipeline_dag',
+    start_date=datetime(2026, 6, 24),
+    schedule_interval='@daily',
     catchup=False
 ) as dag:
 
-    # Python scriptini çalıştıran görev
-    clean_task = BashOperator(
-        task_id='run_cleaning_script',
-        bash_command='python3 /opt/airflow/scripts/clean_data.py'
+    # SSHOperator ile spark_client konteynerinde temizleme scriptini tetikleme
+    clean_data = SSHOperator(
+        task_id='run_spark_cleaning',
+        ssh_conn_id='ssh_default',
+        command='python3 /dataops/clean_script.py', # Spark_client içinde bu yolun var olduğundan emin ol
+        get_pty=True
     )
+
+    clean_data
