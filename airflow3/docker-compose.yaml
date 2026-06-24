@@ -34,23 +34,17 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      # Git-sync'in indirdiği klasörü (git-sync'in içindeki repo klasörünü) 
-      # Airflow'un dags dizinine doğrudan bağlıyoruz
-      - airflow-dags:/opt/airflow/dags
+      - airflow-dags:/opt/airflow/dags # Burası artık tek kaynak
       - /home/train/onur_linux/week15/airflow3/logs:/opt/airflow/logs
     restart: always
 
   git-sync:
-    image: registry.k8s.io/git-sync/git-sync:v4.2.3
+    image: alpine # Alpine kullanarak dosyaları kopyalayalım
+    container_name: git-sync-fix
     volumes:
-      - airflow-dags:/tmp/git
-    environment:
-      - GIT_SYNC_REPO=https://github.com/onurikcu/dataops-week15.git
-      - GIT_SYNC_BRANCH=main
-      - GIT_SYNC_ROOT=/tmp/git
-      - GIT_SYNC_DEST=dags # <--- burayı 'dags' yaparsak Airflow içinde /opt/airflow/dags/dags oluşur
-      - GIT_SYNC_SUBPATH=airflow3/dags # senin istediğin yapı
-      - GIT_SYNC_WAIT=60
+      - airflow-dags:/opt/airflow/dags # Buraya yazacak
+      - /home/train/onur_linux/week15/airflow3/dags:/source # Senin local klasörün
+    command: /bin/sh -c "while true; do cp -r /source/* /opt/airflow/dags/; sleep 30; done"
     restart: always
 
   rustfs:
