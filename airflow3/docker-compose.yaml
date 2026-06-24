@@ -1,4 +1,3 @@
----
 x-airflow-common: &airflow-common
   image: apache/airflow:3.1.3
   environment:
@@ -35,6 +34,8 @@ services:
     ports:
       - "8080:8080"
     volumes:
+      # Git-sync'in indirdiği klasörü (git-sync'in içindeki repo klasörünü) 
+      # Airflow'un dags dizinine doğrudan bağlıyoruz
       - airflow-dags:/opt/airflow/dags
       - /home/train/onur_linux/week15/airflow3/logs:/opt/airflow/logs
     restart: always
@@ -47,7 +48,8 @@ services:
       - GIT_SYNC_REPO=https://github.com/onurikcu/dataops-week15.git
       - GIT_SYNC_BRANCH=main
       - GIT_SYNC_ROOT=/tmp/git
-      - GIT_SYNC_DEST=repo
+      - GIT_SYNC_DEST=dags # <--- burayı 'dags' yaparsak Airflow içinde /opt/airflow/dags/dags oluşur
+      - GIT_SYNC_SUBPATH=airflow3/dags # senin istediğin yapı
       - GIT_SYNC_WAIT=60
     restart: always
 
